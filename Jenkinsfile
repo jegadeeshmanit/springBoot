@@ -7,10 +7,10 @@ pipeline {
 
     environment {
         JAR_NAME = 'spring_app_sak-0.0.1-SNAPSHOT.jar'  // Correcting the JAR file name
-        IMAGE_NAME = 'tohidspring'  // Docker image name
+        IMAGE_NAME = 'jegadeeshspring'  // Docker image name
         DOCKER_HUB_REPO = 'tohidaws/tohidspring'  // Replace with your Docker Hub repo name
         GIT_CRED = 'git-cred'  // Git credentials ID
-        DOCKER_USERNAME = 'tohidaws'  // Docker Hub username
+        DOCKER_USERNAME = 'jegadeeshaws'  // Docker Hub username
         DOCKER_TOKEN = credentials('docker-hub-token')  // The Jenkins credentials ID for the Docker token
         JENKINS_URL = 'http://3.110.120.177:8080'  // Jenkins IP address
     }
@@ -19,7 +19,7 @@ pipeline {
         stage('Checkout Code from GitHub') {
             steps {
                 // Checkout code from GitHub
-                git credentialsId: "${GIT_CRED}", url: 'https://github.com/tohidhanfi20/SpringBoot-APP.git', branch: 'main'
+                git credentialsId: "${GIT_CRED}", url: 'https://github.com/jegadeeshmanit/springBoot.git', branch: 'main'
             }
         }
 
