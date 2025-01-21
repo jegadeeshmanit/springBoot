@@ -53,7 +53,7 @@ pipeline {
         sh """
         docker stop spring-boot-app || true
         docker rm spring-boot-app || true
-        docker pull benjeo/spring-boot-app
+        docker pull jegadeesh86/springboot
         docker run -d --name spring-boot-app -p 8081:8081 jegadeesh86/springboot
         """
     }
