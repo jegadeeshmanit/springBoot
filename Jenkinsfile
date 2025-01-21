@@ -1,102 +1,72 @@
 pipeline {
     agent any
-
     tools {
-        maven 'maven'  // Ensure Maven is configured in Jenkins
+        maven 'maven'
     }
 
     environment {
-        JAR_NAME = 'spring_app_sak-0.0.1-SNAPSHOT.jar'  // Correcting the JAR file name
-        IMAGE_NAME = 'jegadeeshspring'  // Docker image name
-        DOCKER_HUB_REPO = 'tohidaws/tohidspring'  // Replace with your Docker Hub repo name
-        GIT_CRED = 'git-cred'  // Git credentials ID
-        DOCKER_USERNAME = 'jegadeeshaws'  // Docker Hub username
-        DOCKER_TOKEN = credentials('docker-hub-token')  // The Jenkins credentials ID for the Docker token
-        JENKINS_URL = 'http://3.110.120.177:8080'  // Jenkins IP address
+        DOCKER_IMAGE = 'benjeo/spring-boot-app'
     }
 
     stages {
-        stage('Checkout Code from GitHub') {
+        stage('Pre-Check Docker') {
             steps {
-                // Checkout code from GitHub
-                git credentialsId: "${GIT_CRED}", url: 'https://github.com/jegadeeshmanit/springBoot.git', branch: 'main'
+                sh 'docker --version'
             }
         }
 
-        stage('Maven Build and Test') {
+        stage('Checkout Code') {
             steps {
-                script {
-                    // Build and run tests using Maven
-                    sh 'mvn clean validate compile test package verify install'
-                }
+                git branch: 'main', url: 'https://github.com/jegadeeshmanit/springBoot.git'
             }
         }
 
-        stage('Trivy FS Scan') {
-            steps {
-                // Run Trivy scan on the file system
-                sh "trivy fs . > trivyfs.txt"
-            }
-        }
+        stage('Build JAR') {
+    steps {
+        sh 'chmod +x ./mvnw' // Add this line to grant execute permissions
+        sh './mvnw clean package'
+        archiveArtifacts artifacts: 'target/spring_app_sak-0.0.1-SNAPSHOT.jar', fingerprint: true
+    }
+}
+
+
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Build the Docker image using the provided Dockerfile
-                    sh '''
-                    docker build -t ${IMAGE_NAME} -f Dockerfile .
-                    '''
-                }
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
-        stage('Trivy Image Scan') {
+        stage('Push Docker Image') {
             steps {
-                // Run Trivy scan on Docker image
-                sh "trivy image --format json -o trivy_image_report.json ${IMAGE_NAME}"
-            }
-        }
-
-        stage('Tag and Push to Docker Hub') {
-            steps {
-                script {
-                    // Log in to Docker Hub and push the image using the token
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh """
-                    echo '${DOCKER_TOKEN}' | docker login -u '${DOCKER_USERNAME}' --password-stdin
-                    docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}
-                    docker push ${DOCKER_HUB_REPO}
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker push $DOCKER_IMAGE
                     """
                 }
             }
         }
 
-        stage('Remove Local Docker Image') {
-            steps {
-                script {
-                    // Remove the local Docker image
-                    sh '''
-                    docker rmi -f ${IMAGE_NAME} || true
-                    '''
-                }
-            }
-        }
+        stage('Deploy Application') {
+    steps {
+        sh """
+        docker stop spring-boot-app || true
+        docker rm spring-boot-app || true
+        docker pull benjeo/spring-boot-app
+        docker run -d --name spring-boot-app -p 8081:8081 /spring-boot-app
+        """
+    }
+    }
 
-        stage('Pull and Run Docker Image from Docker Hub') {
-            steps {
-                script {
-                    // Pull and run the image from Docker Hub
-                    sh '''
-                    docker pull ${DOCKER_HUB_REPO}
-                    docker run -d --name springapp -p 8081:8081 ${DOCKER_HUB_REPO}
-                    '''
-                }
-            }
-        }
     }
 
     post {
-        always {
-            echo 'Pipeline completed. Container is running from the pulled Docker Hub image.'
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline execution failed!'
         }
     }
 }
