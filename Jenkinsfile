@@ -51,10 +51,10 @@ pipeline {
         stage('Deploy Application') {
     steps {
         sh """
-        docker stop spring-boot-app || true
-        docker rm spring-boot-app || true
+        docker stop Spring_boot_app || true
+        docker rm Spring_boot_app || true
         docker pull jegadeesh86/springboot
-        docker run -d --name spring-boot-app -p 8081:8081 jegadeesh86/springboot
+        docker run -d --name Spring_boot_app -p 8081:8081 jegadeesh86/springboot
         """
     }
     }
